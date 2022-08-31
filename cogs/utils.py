@@ -6,8 +6,8 @@ import subprocess
 import unicodedata
 from collections import namedtuple
 from datetime import timedelta
-from math import floor
 from random import choice, randint
+from math import floor
 
 import discord
 from discord.ext import commands
@@ -133,6 +133,19 @@ class Utils(commands.Cog):
             f"{discord.utils.escape_mentions(ctx.message.author.display_name)} -> your seed is a {total_eyes} eye"
         )
 
+    @findseed.error
+    async def findseed_handler(self, ctx, error):
+        if isinstance(error, commands.CommandOnCooldown):
+            if ctx.message.channel.id != int(
+                self.bot.config[str(ctx.message.guild.id)]["bot_channel"]
+            ):
+                ctx.command.reset_cooldown(ctx)
+                await ctx.message.delete()
+                return
+        else:
+            await ctx.send(error)
+            # await ctx.send(f"{discord.utils.escape_mentions(ctx.message.author.display_name)}, you have to wait {round(error.retry_after, 7)} seconds before using this again.")
+
     @commands.command()
     async def findsleep(self, ctx):
         """Test your sleep"""
@@ -220,12 +233,12 @@ class Utils(commands.Cog):
 
         try:
             msg = await self.bot.wait_for("message", check=check, timeout=300)
-            await msg.channel.send("<:PeepoPog:732172337956257872>")
+            await msg.channel.send("<>")
             await msg.channel.send(
-                f"{member.mention}\n"
-                + "controller is allowed on mobile\n"
-                + "keyboard and mouse is allowed on console\n"
-                + "submit the run as the physical device you played on"
+                #f"{member.mention}\n"
+                + "Welcome\n"
+                + "to Bandee's Return to Dream Land\n"
+                + "please make sure to read <#816276907221450784>"
             )
         except asyncio.TimeoutError:
             pass
@@ -242,10 +255,10 @@ class Utils(commands.Cog):
         if message.author.bot:
             return
         if (
-            "<@!280428276810383370>" in message.content
-            or "<@280428276810383370>" in message.content
+            "<@!516723700637237249>" in message.content
+            or "<@516723700637237249>" in message.content
         ):
-            await message.channel.send("<:MangoPing:760286455238361129>")
+            await message.channel.send("<:SweetRAVEParty:1014676159881035937>")
         badWords = ("fair", "ⓕⓐⓘⓡ")
         count = 0
         year = datetime.date.today().year
@@ -295,13 +308,13 @@ class Utils(commands.Cog):
                 bday=datetime.date(year, 11, 10),
             ),
             CoolKids(
-                name="Faith",
+                name="Nevaeh",
                 user=self.bot.get_user(744383381843738633),
                 bday=datetime.date(year, 11, 5),
             ),
             # Prakxo
             CoolKids(
-                name="Samanta",
+                name="Samantha",
                 user=self.bot.get_user(226312219787264000),
                 bday=datetime.date(year, 6, 24),
             ),
@@ -311,7 +324,7 @@ class Utils(commands.Cog):
                 bday=datetime.date(year, 6, 23),
             ),
             CoolKids(
-                name="Kyra",
+                name="Skye",
                 user=self.bot.get_user(329538915805691905),
                 bday=datetime.date(year, 6, 24),
             ),
@@ -394,33 +407,6 @@ class Utils(commands.Cog):
             )
             if "women" in text.lower() or "woman" in text.lower():
                 await message.channel.send("<:shut:808843657167765546>")
-        if message.reference is not None and len(message.content) == 0:
-            reply = await message.channel.fetch_message(message.reference.message_id)
-            if reply.is_system():
-
-                def check(m):
-                    return (
-                        m.author == message.author
-                        and message.reference is not None
-                        and len(message.content) == 0
-                    )
-
-                try:
-                    msg2 = await self.bot.wait_for("message", check=check)
-                except asyncio.TimeoutError:
-                    return
-                reply2 = await msg2.channel.fetch_message(msg2.reference.message_id)
-                if not reply2.is_system():
-                    return
-                muted_role = message.guild.get_role(
-                    int(self.bot.config[str(message.guild.id)]["mute_role"])
-                )
-                await message.author.add_roles(muted_role, reason="spam")
-                await message.channel.send(
-                    "{0.mention} has been muted for *spam*".format(message.author)
-                )
-                await asyncio.sleep(300)
-                await message.author.remove_roles(muted_role, reason="time's up ")
 
         for word in badWords:
             if word in message.content.lower().replace(" ", ""):
@@ -451,7 +437,7 @@ class Utils(commands.Cog):
                         else:
                             fairStreak = 1
                             await message.channel.send(
-                                "streak lost. <:sad:716629485449117708>"
+                                "streak lost. <:Suck:842768636716253225>"
                             )
 
                         # only send && update if user is fairing for the first time today
@@ -495,7 +481,7 @@ class Utils(commands.Cog):
 
     # 24 hour cooldown
     # should probably be longer - we can't have these kids cheating!
-    @commands.cooldown(1, 86400, commands.BucketType.user)
+    @commands.cooldown(1, 300, commands.BucketType.user)
     @commands.command()
     async def timezone(self, ctx, timeZone):
         """set timezone for fair days/streaks"""
@@ -666,7 +652,7 @@ class Utils(commands.Cog):
             if callerIndex + leftIndex == 10:
                 text += f"**11. {self.bot.get_user(int(userstr))}: {entry}** \n"
             else:
-                text += f"\n{callerIndex + leftIndex + 1}. {self.bot.get_user(int(userstr))}: {entry} \nRange of positions with value {entry}: {leftIndex+1} - {rightIndex}\n"
+                text += f"\n{callerIndex + leftIndex + 1}. {self.bot.get_user(int(userstr))}: {entry} \nTotal number of people with value {entry}: {rightIndex - leftIndex}\n"
 
         embed.add_field(name=flag, value=text, inline=False)
 
@@ -701,8 +687,10 @@ class Utils(commands.Cog):
     @commands.command()
     async def someone(self, ctx):
         """Discord's mistake"""
-
-        await ctx.send(choice(ctx.guild.members).mention)
+        if ctx.channel.id != int(
+            self.bot.config[str(ctx.message.guild.id)]["fair_channel"]
+        ):
+            await ctx.send(choice(ctx.guild.members).mention)
 
     @commands.command()
     async def roll(self, ctx, pool):
@@ -766,5 +754,5 @@ class Utils(commands.Cog):
         )
 
 
-async def setup(bot):
-    await bot.add_cog(Utils(bot))
+def setup(bot):
+    bot.add_cog(Utils(bot))
